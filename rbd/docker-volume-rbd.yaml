@@ -1,0 +1,64 @@
+
+# in the form of /run/docker/plugins/<plugin-name>.sock
+socket: /run/docker/plugins/docker-volume-rbd.sock
+
+# Default values
+# - can be overriden by docker --opt
+# - can be picked up the templates.create below as a map of keys
+defaults:
+    poolname: docker-rbd
+    namespace: default
+    user: 
+    image: 
+    size: 1G
+
+ # Template data is a map[string]string 
+ #   - "name" map entry is always given except to list
+ #   - ONLY template.create gets the full options which also contain the UNION{config.defaults, docker.opts}
+ #     - config.defaults is defaults entry above
+ #     - docker.opts is from docker volume opts (i.e. compose file or cli)
+ # All other commands must store/restore full options if they need them
+templates:
+    # Exit with non-zero to signify create error. 
+    # If error, stdout+stderr will be returned to docker
+    create: |
+        export CEPH_USER={{if index . "user"}}{{index . "user"}}{{else}}{{index . "name"}}{{end}}
+        export POOL_NAME={{index . "poolname"}}
+        export RBDIMAGE={{if index . "image"}}{{index . "image"}}{{else}}{{index . "name"}}{{end}}
+        export NAMESPACE={{index . "namespace"}}
+        export SIZE={{index . "size"}}
+
+        ./docker-volume-rbd.sh create {{index . "name"}}
+    
+    # Exit with non-zero to signify create error. 
+    # If error, stdout+stderr will be returned to docker
+    # On success, last line of STDOUT MUST contain the mountpoint
+    mount: |
+        ./docker-volume-rbd.sh mount {{index . "name"}}
+
+    # Exit with non-zero to signify create error. 
+    # If error, stdout+stderr will be returned to docker
+    unmount: |
+        ./docker-volume-rbd.sh unmount {{index . "name"}}
+
+    # Exit with non-zero to signify create error. 
+    # If error, stdout+stderr will be returned to docker
+    remove: |
+        ./docker-volume-rbd.sh remove {{index . "name"}}
+    
+    # Exit with non-zero to signify no such volume. 
+    # Exit 0, means volume exists
+    get: |
+        ./docker-volume-rbd.sh get {{index . "name"}}
+
+    # Exit with non-zero to signify create error. 
+    # If error, stdout+stderr will be returned to docker
+    # On success, last line of STDOUT MUST contain the mountpoint
+    path: |
+        ./docker-volume-rbd.sh path {{index . "name"}}
+
+    # Exit with non-zero to signify create error. 
+    # If error, stdout+stderr will be returned to docker
+    # On success, EVERY line of STDOUT MUST contain a volume name
+    list: |
+        ./docker-volume-rbd.sh list {{index . "name"}}

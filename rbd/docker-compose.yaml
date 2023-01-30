@@ -1,0 +1,32 @@
+version: '3.10' # dhcp patch
+services:
+  web1:
+    image: ubuntu:22.04
+    command: sleep 600000
+    volumes:
+      - ceph-rbd1:/code
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==firefly5.papro.ca
+  web2:
+    image: ubuntu:22.04
+    command: sleep 600000
+    volumes:
+      - ceph-rbd2:/code
+    deploy:
+      placement:
+        constraints:
+          - node.hostname==firefly2.papro.ca
+
+volumes:
+  ceph-rbd1:
+    driver: docker-volume-rbd
+    driver_opts:
+      namespace: "{{index .Service.Labels \"com.docker.stack.namespace\" }}"
+      size: 2G
+  ceph-rbd2:
+    driver: docker-volume-rbd
+    driver_opts:
+      namespace: "{{index .Service.Labels \"com.docker.stack.namespace\" }}"
+      size: 3G
